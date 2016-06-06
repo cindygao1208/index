@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html ng-app="app">
+<head>
+    Receive file from file manager and send file back with result
+
+</head>
+<body>
+    <div ng-controller="receiveCtrl">
+        <label>Filename to received: Default directory is C:\test\</label>
+        <input class="form-control" ng-model="receFileName" required>
+        <button ng-model="receive" ng-click="receive()">Receive</button>
+    </div>
+    
+    <div ng-controller="sendCtrl">
+        <label>Filename to Save As: Default directory is C:\test\</label>
+        <input class="form-control" ng-model="sendFileName" required>
+        <button ng-model="send" ng-click="send()">Send</button>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/angular.js/1.5.5/angular.js"></script>
+    <script>
+        angular.module('app', []);
+        angular.module('app').factory('model', ['$http', '$q', function ($http, $q) {
+            var rfilename;
+            
+            function receiveFile() {
+                console.log('receive file');
+                
+                return $q(function (resolve, reject) {
+                    var x = document.createElement('INPUT');
+                    x.style.visibility = 'hidden';
+                    x.setAttribute('type', 'file');
+                    document.body.appendChild(x);
+                    x.addEventListener('change', function (e) {
+                        
+                        resolve(e);
+                    });
+                    x.click();
+                    // document.body.removeChild(x);
+                })
+                .then(
+                    function (e) {
+                        return $q(function (resolve, reject) {
+                            var file = e.target.files[0];
+                            if (!file) { return; }
+                            rfilename = file.name;
+                            var reader = new FileReader();
+                            reader.onload = resolve;
+                            try {
+                                reader.readAsText(file);
+                            } catch (e) {
+                                debugger;
+                            }
+                           
+                        });
+                    },
+                    function () {
+                        console.log('Something wrong...');
+                    }
+                )
+                .then(
+                    function (e) {
+                        return;
+                        var lines = e.target.result.split('\n').map(function (c, i) {
+                            return c.indexOf('Elvis') > -1 ? i + 1 : '';
+                        }).filter(function (c, i) { return c > 0 })
+
+                        var wordApp = new ActiveXObject("Word.Application");
+                        wordApp.Visible = true;
+                        var doc = wordApp.Documents.Add();
+                        var sel = wordApp.Selection;
+                        sel.TypeText(lines.join('\n'));
+                        doc.save();
+                        doc.close();
+                    },
+                    function () {
+                        console.log('Something wrong...');
+                    }
+                )
+            };
+
+            function sendFile($scope) {
+                console.log('send files');
+                var sfilename = $scope.sendFileName;
+
+                if (!sfilename || !rfilename) {
+                    return;
+                };
+               
+                var op = {
+                    refilename: rfilename,
+                    sefilename: sfilename
+                };
+                try {
+                    var datastr = JSON.stringify(op);
+                } catch (e) {
+                    debugger;
+                }
+                
+                console.log(datastr);
+                //alert(rfilepath + rfilename);
+                var host = "http://localhost:57305/";
+                $http({
+                    url: host + "/home/Http_Get_Result?",
+                    method: "POST",
+                    data: { jsonstr: datastr }
+                }).then(
+                    function (response) {
+                        var json = response.data;
+                        if (json.Status) {
+                            alert("Send file successful!")
+                        } else {
+                            alert("Error to send file111111!")
+                        }
+                    },
+                    function (e) {
+                        alert("Error to send file!")
+                    }
+                );
+            };
+
+            var ret = {
+                receive: function () {
+                    return receiveFile();
+                    //received.ReceivedFile = refilename;
+                },
+
+                send: function ($scope) {
+                    sendFile($scope);
+                },
+
+                getFileName: function () {
+                    return rfilename;
+                }
+            };
+            return ret;
+        }]);
+
+        angular.module('app').controller('receiveCtrl', ['$scope', 'model', function ($scope, model) {
+            $scope.receive = function () {
+                model.receive().then(function () {
+                    $scope.receFileName = model.getFileName();
+                });
+            };
+           
+        }]);
+
+        angular.module('app').controller('sendCtrl', ['$scope', 'model', function ($scope, model) {
+            $scope.send = function () {
+                model.send($scope);
+            };
+            $scope.sendFileName = "myText.docx";
+        }]);
+
+    </script>
+
+</body>
+</html>
