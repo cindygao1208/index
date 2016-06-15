@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html ng-app="app">
+<head>
+    <title>Address book</title>
+<style>
+html, body, form, input {
+    font-family:'Roboto Condensed', Arial, Helvetica, sans-serif;
+    font-style: normal;
+    font-weight:300;
+    font-size: 1em;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    outline: 0;
+}
+
+section {
+    width: 600px;
+    margin: 30px auto;
+    background-color: #B0B5E8;
+    border: 1px solid #423021;
+    box-shadow: 2px 2px 10px #666;
+}
+
+fieldset {
+    margin: 20px 20px;
+    border-color: #2B3875;
+    position: relative;
+}
+
+legend {
+    font-weight: bold;
+    font-size: 1.25em;
+    padding: 0 5px;
+    text-shadow: 1px 1px 0px #fff;
+}
+
+button {
+    border: 1px solid #423021;
+    background-color: #063489;
+    color: #fff;
+    padding: 6px 10px;
+    border-radius: 6px;
+    text-shadow: 1px 1px 0px #000;
+    font-size: 0.9em;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.btn-group {
+    display:inline-block;
+    margin-top: 0;
+}
+.btn-group button{
+    display: block;
+    margin: 10px 0 0 0;
+    top: -60px;
+}
+
+input {
+    padding-left: 4px;
+    width: 70%;
+    height: 30px;
+    margin: 0 10px 10px 0;
+    border: 1px solid #423021;
+}
+
+#contacts {
+    width: 65%;
+    height: 230px;
+    margin-right: 10px;
+}
+
+   section {
+        width: 90%;
+    }
+    .btn-group {
+        display: block;
+        width: 100%;
+    }
+    .btn-group button{
+        top: 0px;
+    }
+    button {
+        display: block;
+        width: 100%;
+        margin: 10px 0 0 0;
+    }
+    input {
+        width: 100%;
+
+    }
+    #contacts {
+        width: 100%;
+    }
+
+
+</style>
+</head>
+<body>
+    <section>
+        <fieldset>
+            <legend>Contact</legend>
+            <form id="contactForm" ng-controller="bookCtrl">
+                <input type="text" ng-model="book.firstName" autofocus placeholder="First Name">
+                <input type="text" ng-model="book.lastName" placeholder="Last Name">
+                <input type="tel" ng-model="book.telphone" placeholder="Telephone">
+                <button type="button" id="btnAdd" ng-model="add" ng-click="add()">Add</button>
+            </form>
+        </fieldset>
+
+        <fieldset ng-controller="contCtrl">
+            <legend>Contacts</legend>
+            <select id="contacts" ng-model="contacts" size="16" multiple></select>
+
+            <div class="btn-group">
+                <button id="btnSortByFirstName" ng-model="sbFirstName" ng-click="sbFirstName()">Sort by first name</button>
+                <button id="btnSortByLastName" ng-model="sbLirstName" ng-click="sbLirstName()">Sort by last name</button>
+                <button id="btnSortByTelphone" ng-model="sbTelphone" ng-click="sbTelphone()">Sort by telphone</button>
+                <button id="btnDelete" ng-model="delete" ng-click="delete()">Delete</button>
+                <button id="btnLoad" ng-model="load" ng-click="load()">Load</button>
+                <button id="btnSave" ng-model="save" ng-click="save()">Save</button>
+            </div>
+        </fieldset>
+    </section>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/angular.js/1.5.5/angular.js"></script>
+    <script>
+    angular.module('app', []);
+    angular.module('app').factory('model', ['$http', '$q', function ($http, $q) {
+
+        // common lib
+        var $ = function (id) {
+            return document.getElementById(id.substr(1));
+        };
+
+        //function HttpStore() { }  // to be implemented
+
+        function LocalStorageStore() { }
+
+        LocalStorageStore.prototype.load = function () {
+            return new Promise(function (resolve, reject) {
+                resolve(localStorage.getItem('contacts'));
+            });
+        };
+
+        LocalStorageStore.prototype.save = function (data) {
+            return new Promise(function (resolve, reject) {
+                localStorage.setItem('contacts', data);
+                resolve();
+            });
+        };
+
+        // model
+        var storage = new LocalStorageStore(),
+            contacts = [];
+        alert(0);
+        var ret = {
+            getAll: function () {
+                return contacts;
+            },
+
+            add: function (contact) {
+                $q.contacts = contacts.push(contact);
+            },
+
+            remove: function (idx) {
+                contacts.splice(idx, 1);
+            },
+
+            sort: function (key, desc) {
+                contacts.sort(function (c1, c2) {
+                    return desc ? (c1[key] < c2[key]) : (c1[key] > c2[key]);
+                });
+            },
+
+            load: function () {
+                return storage.load().then(function (data) {
+                    contacts = JSON.parse(data);
+                });
+            },
+
+            save: function () {
+                return storage.save(JSON.stringify(contacts));
+            }
+        }
+            return ret;
+    }]);
+
+    angular.module('app').controller('bookCtrl', ['$scope', 'model', function ($scope, model) {
+        alert(1);
+        $scope.add = function () {
+            var contact = {
+                firstName: $scope.book.firstName,
+                lastName: $scope.book.lastName,
+                telphone: $scope.book.telphone
+            };
+            alert(2);
+            model.add(contact);
+        }
+    }]);
+  
+    angular.module('app').controller('contCtrl', ['$scope', 'model', function ($scope, model) {
+        $scope.sbFirstName = function () {
+            model.sort('firstName', true);
+            repaint();
+        };
+
+        $scope.sbLastName = function () {
+            model.sort('LastName');
+            repaint();
+        };
+       
+        $scope.sbTelphone = function () {
+            model.sort('telphone');
+            repaint();
+        };
+
+        $scope.delete = function () {
+            var contacts = $('#contacts'),
+                selected = contacts.selectedOptions,
+                length = selected.length,
+                i;
+
+            if (length === 0) {
+                alert('Please select a contact.')
+                return;
+            }
+            for (i = length - 1; i >= 0; i--) {
+                model.remove(selected.item(i).index);
+            }
+            repaint();
+        };
+
+        $scope.load = function () {
+            model.load().then(function () {
+                repaint();
+            });
+        };
+
+        $scope.save = function () {
+            model.save().then(function () {
+                repaint();
+                alert('Saved!')
+            })
+        }
+    }]);
+        
+</script>
+</body>
+</html>
+
+
+
+
