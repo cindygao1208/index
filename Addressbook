@@ -187,6 +187,25 @@ input {
     }]);
 
     angular.module('app').controller('bookCtrl', ['$scope', 'model', function ($scope, model) {
+            (function () {
+            function repaint() {
+                var ce = document.createEvent('CustomEvent');
+                ce.initCustomEvent('repaint', true, true, {});
+                document.dispatchEvent(ce);
+            }
+
+            document.addEventListener('repaint', function () {
+                var contacts = $('#contacts');
+
+                contacts.innerHTML = '';
+
+                model.getAll().forEach(function (contact) {
+                    var str = contact.firstName + ' ' + contact.lastName + ' ' + contact.telphone;
+                    contacts.add(new Option(str, 0));
+                });
+            });
+        });
+
         alert(1);
         $scope.add = function () {
             var contact = {
